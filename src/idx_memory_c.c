@@ -1,4 +1,3 @@
-#include <endian.h>
 #include <string.h>
 #include <stddef.h>
 #include <stdbool.h>

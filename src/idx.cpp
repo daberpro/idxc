@@ -8,6 +8,8 @@
 #include <typeinfo>
 #include <string.h>
 #include <cstddef>
+#include <filesystem>
+#include <iostream>
 
 extern "C" {
 #include "idx_error_c.h"
@@ -16,6 +18,7 @@ extern "C" {
 #include "idx_type_data_c.h"
 }
 
+#include "idx_error_cpp.h"
 #include "idx.hpp"
 
 Idx::Idx(const Idx& ctor) :
@@ -36,7 +39,7 @@ Idx::~Idx() {} // Created as tests
 
 Idx::Idx(Idx* parent, size_t begin, size_t end) {
 
-	if(begin > end || begin > parent->number_of_elements) { throw std::invalid_argument("Invalid index"); }
+	if(begin > end || begin > parent->number_of_elements) { throw std::runtime_error("Invalid index"); }
 
 	type = parent->type;
 	dimension = parent->dimension;
@@ -50,36 +53,53 @@ Idx::Idx(Idx* parent, size_t begin, size_t end) {
 }
 
 Idx::Idx(const char* filename) {
-	struct idx_result memory = idx_memory_from_filename(filename);
-	if(memory.error) {
-		if(memory.error_message) { /* TODO */}
-		throw memory.error;
+
+	try{
+		// check if file exists
+		if(!std::filesystem::exists(filename)){
+			throw std::runtime_error(std::string("Cannot Open [")+filename+"], file not found\n");
+		}
+	
+		struct idx_result memory = idx_memory_from_filename(filename);
+		if(memory.error) {
+			throw std::runtime_error(idx::idx_get_error_as_string(memory.error));
+		}
+	
+		struct idx_memory* mem = memory.memory;
+	
+		// Pass from C to C++
+		element_size = mem->element_size;
+		payload = std::make_unique<std::uint8_t[]>(mem->number_of_elements * mem->element_size);
+		memcpy(payload.get(), mem->element, mem->number_of_elements * mem->element_size);
+	
+		number_of_elements = mem->number_of_elements;
+		type = mem->type;
+		type_size = idx_type_data_size(type);
+		dimension.reserve(mem->number_of_dimensions);
+		for(size_t i = 0; i < mem->number_of_dimensions; i++) {
+			dimension.push_back(mem->dimension[i]);
+		}
+	
+		idx_result_free(memory);
+
+	}catch(std::runtime_error& error){
+
+		std::cerr << "Error : " << error.what() << '\n';
+		exit(EXIT_FAILURE);
+
 	}
-
-	struct idx_memory* mem = memory.memory;
-
-	// Pass from C to C++
-	element_size = mem->element_size;
-	payload = std::make_unique<std::uint8_t[]>(mem->number_of_elements * mem->element_size);
-	memcpy(payload.get(), mem->element, mem->number_of_elements * mem->element_size);
-
-	number_of_elements = mem->number_of_elements;
-	type = mem->type;
-	type_size = idx_type_data_size(type);
-	dimension.reserve(mem->number_of_dimensions);
-	for(size_t i = 0; i < mem->number_of_dimensions; i++) {
-		dimension.push_back(mem->dimension[i]);
-	}
-
-	idx_result_free(memory);
 }
 
 Idx::operator uint8_t*() {
-	if(type != UNSIGNED_8_INT) {
-		return nullptr;
+	try{
+		if(type != UNSIGNED_8_INT) {
+			throw std::runtime_error("Cannot cast to uint8_t* because, the type is not UNSIGNED_8_INT\n");
+		}
+		return payload.get();
+	}catch(std::runtime_error& error){
+		std::cerr << "Error : " << error.what() << '\n';
+		exit(EXIT_FAILURE);
 	}
-
-	return payload.get();
 }
 
 Idx Idx::operator[](size_t position) {
@@ -87,5 +107,10 @@ Idx Idx::operator[](size_t position) {
 }
 
 Idx Idx::slice(size_t begin, size_t end) {
-	return Idx(this, begin, end);
+	try{
+		return Idx(this, begin, end);
+	}catch(std::runtime_error& error){
+		std::cerr << "Error : " << error.what() << '\n';
+		exit(EXIT_FAILURE);
+	}
 }

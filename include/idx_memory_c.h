@@ -1,6 +1,22 @@
 #ifndef IDX_MEMORY_C_H
 #define IDX_MEMORY_C_H
-
+#if defined(_WIN32)
+  #include <stdlib.h>
+  #define htobe16(x) _byteswap_ushort(x)
+  #define htobe32(x) _byteswap_ulong(x)
+  #define htobe64(x) _byteswap_uint64(x)
+  #define be16toh(x) _byteswap_ushort(x)
+  #define be32toh(x) _byteswap_ulong(x)
+  #define be64toh(x) _byteswap_uint64(x)
+#elif defined(__APPLE__)
+  #include <libkern/OSByteOrder.h>
+  #define htobe16(x) OSSwapHostToBigInt16(x)
+  #define htobe32(x) OSSwapHostToBigInt32(x)
+  #define htobe64(x) OSSwapHostToBigInt64(x)
+#else
+  #include <endian.h>
+  #include <byteswap.h>
+#endif
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>

@@ -44,6 +44,7 @@ TEST(idx_cpp, check_constructor_images)
 
 	uint8_t check[] = {0,0,0,0,0}; // The beginning of the iamge is 0
 	for(size_t i = 0; i < 5; i++) {
+		
 		CHECK((static_cast<uint8_t*>(slice.payload.get()))[i] == check[i] );
 	}
 }

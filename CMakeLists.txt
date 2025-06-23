@@ -1,0 +1,51 @@
+cmake_minimum_required(VERSION 4.0)
+project(idx)
+
+set(CMAKE_CXX_STANDARD 23)
+
+# Output Dir
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+# Gel all resources
+file(GLOB SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")
+
+# create library and target
+add_library(
+    ${CMAKE_PROJECT_NAME}
+    STATIC
+    ${SRC_FILES}
+)
+
+include(GNUInstallDirs)
+
+target_include_directories(
+    ${CMAKE_PROJECT_NAME} PRIVATE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+
+target_link_libraries(
+    ${CMAKE_PROJECT_NAME} PRIVATE
+    winmm
+)
+
+install(TARGETS ${CMAKE_PROJECT_NAME}
+    EXPORT idx
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+# Install headers
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+# Export targets
+install(EXPORT ${CMAKE_PROJECT_NAME}
+    FILE ${CMAKE_PROJECT_NAME}LibTargets.cmake
+    NAMESPACE ${CMAKE_PROJECT_NAME}::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${CMAKE_PROJECT_NAME}
+)
+
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/tests)

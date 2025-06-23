@@ -56,3 +56,5 @@ dkms.conf
 tags
 compile_commands.json
 tests/tests
+build/
+.vscode/
